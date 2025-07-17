@@ -3,10 +3,12 @@ import dbConnect from '@/lib/mongodb'
 import UserData from '@/models/UserData'
 import { verifyToken } from '@/lib/auth'
 
+// POST: Save user profile
 export async function POST(req: NextRequest) {
   await dbConnect()
+
   try {
-    const token = req.cookies.get('token')?.value || req.headers.get('authorization')?.split(' ')[1]
+    const token = req.cookies.get('token')?.value
     const decoded = token && verifyToken(token)
     if (!decoded) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -34,10 +36,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// GET: Fetch profile
 export async function GET(req: NextRequest) {
   await dbConnect()
+
   try {
-    const token = req.cookies.get('token')?.value || req.headers.get('authorization')?.split(' ')[1]
+    const token = req.cookies.get('token')?.value
     const decoded = token && verifyToken(token)
     if (!decoded) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -52,16 +56,13 @@ export async function GET(req: NextRequest) {
         ? '/avatars/female.png'
         : '/avatars/default.png'
 
-    return NextResponse.json(
-      {
-        success: true,
-        profile: {
-          ...user.profile.toObject(),
-          avatarUrl
-        }
-      },
-      { status: 200 }
-    )
+    return NextResponse.json({
+      success: true,
+      profile: {
+        ...user.profile.toObject(),
+        avatarUrl
+      }
+    }, { status: 200 })
   } catch (err) {
     console.error('GET /api/user/profile error:', err)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })

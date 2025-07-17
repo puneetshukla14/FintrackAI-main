@@ -1,15 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useUser } from '@/context/UserContext'
 
 export default function UserProfilePage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [monthlySalary, setMonthlySalary] = useState<number | ''>('')
+  const [monthlySalary, setMonthlySalary] = useState(0)
   const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>('unspecified')
+  const [currency, setCurrency] = useState('INR')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+
+  const { setUser } = useUser()
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -19,10 +23,21 @@ export default function UserProfilePage() {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
-        setName(data?.profile?.fullName || '')
-        setEmail(data?.profile?.email || '')
-        setMonthlySalary(data?.profile?.monthlySalary || '')
-        setGender(data?.profile?.gender || 'unspecified')
+        const profile = data?.profile || {}
+        setName(profile.fullName || '')
+        setEmail(profile.email || '')
+        setMonthlySalary(Number(profile.monthlySalary) || 0)
+        setGender(profile.gender || 'unspecified')
+        setCurrency(profile.currency || 'INR')
+        setUser({
+          fullName: profile.fullName || '',
+          email: profile.email || '',
+          monthlySalary: Number(profile.monthlySalary) || 0,
+          gender: profile.gender || 'unspecified',
+          currency: profile.currency || 'INR',
+        })
+
+
       } catch (err) {
         console.error('Error fetching profile:', err)
       } finally {
@@ -31,15 +46,16 @@ export default function UserProfilePage() {
     }
 
     fetchProfile()
-  }, [])
+  }, [setUser])
 
   const handleSave = async () => {
     setSaving(true)
     setMessage('')
     const token = localStorage.getItem('token')
+
     try {
       const res = await fetch('/api/user/profile', {
-        method: 'POST', // ✅ Use POST instead of PUT
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -49,10 +65,18 @@ export default function UserProfilePage() {
           email,
           monthlySalary,
           gender,
+          currency,
         }),
       })
 
       if (res.ok) {
+        setUser({
+          fullName: name,
+          email,
+          monthlySalary,
+          gender,
+          currency,
+        })
         window.dispatchEvent(new Event('profileUpdated'))
         setMessage('✅ Profile updated successfully.')
       } else {
@@ -119,6 +143,19 @@ export default function UserProfilePage() {
             <option value="unspecified">Prefer not to say</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm text-zinc-400 mb-1">Currency</label>
+          <select
+            value={currency}
+            onChange={e => setCurrency(e.target.value)}
+            className="w-full p-2 bg-zinc-900 border border-zinc-700 rounded"
+          >
+            {['INR', 'USD', 'EUR', 'GBP'].map(cur => (
+              <option key={cur} value={cur}>{cur}</option>
+            ))}
           </select>
         </div>
 
